@@ -8,13 +8,10 @@ import textwrap
 app = Flask(__name__)
 
 def get_font(size):
-    font_path = "/tmp/DejaVuSans-Bold.ttf"
-    if not os.path.exists(font_path):
-        url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf"
-        r = requests.get(url, timeout=15)
-        with open(font_path, "wb") as f:
-            f.write(r.content)
-    return ImageFont.truetype(font_path, size)
+    font_path = "/app/fonts/DejaVuSans-Bold.ttf"
+    if os.path.exists(font_path):
+        return ImageFont.truetype(font_path, size)
+    return ImageFont.load_default()
 
 def add_text_overlay(image_url, text):
     r = requests.get(image_url, timeout=15)
