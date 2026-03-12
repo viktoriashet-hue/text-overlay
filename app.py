@@ -3,7 +3,6 @@ from PIL import Image, ImageDraw, ImageFont
 import requests
 import io
 import os
-import textwrap
 
 app = Flask(__name__)
 
@@ -13,23 +12,42 @@ def get_font(size):
         return ImageFont.truetype(font_path, size)
     return ImageFont.load_default()
 
+def wrap_text_pixels(text, font, max_width, draw):
+    words = text.split()
+    lines = []
+    current_line = ""
+    for word in words:
+        test_line = (current_line + " " + word).strip()
+        bbox = draw.textbbox((0, 0), test_line, font=font)
+        if bbox[2] - bbox[0] <= max_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line)
+            current_line = word
+    if current_line:
+        lines.append(current_line)
+    return lines
+
 def add_text_overlay(image_url, text):
     r = requests.get(image_url, timeout=15)
     img = Image.open(io.BytesIO(r.content)).convert("RGBA")
     width, height = img.size
-    font_size = max(48, width // 10)
+    font_size = max(32, width // 14)
     try:
         font = get_font(font_size)
     except:
         font = ImageFont.load_default()
-    max_chars = max(10, width // (font_size // 2))
-    lines = textwrap.wrap(text, width=max_chars)
-    line_height = font_size + 16
-    total_height = line_height * len(lines) + 60
-    overlay = Image.new("RGBA", (width, total_height), (0, 0, 0, 160))
-    img.paste(overlay, (0, 0), overlay)
     draw = ImageDraw.Draw(img)
-    y = 20
+    max_width = width - 40
+    lines = wrap_text_pixels(text, font, max_width, draw)
+    line_height = font_size + 12
+    total_height = line_height * len(lines) + 40
+    overlay_y = (height - total_height) // 2
+    overlay = Image.new("RGBA", (width, total_height), (0, 0, 0, 180))
+    img.paste(overlay, (0, overlay_y), overlay)
+    draw = ImageDraw.Draw(img)
+    y = overlay_y + 15
     for line in lines:
         bbox = draw.textbbox((0, 0), line, font=font)
         text_w = bbox[2] - bbox[0]
